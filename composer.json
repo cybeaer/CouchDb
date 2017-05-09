@@ -1,6 +1,7 @@
 {
     "name": "phplib/couchdb",
     "type": "library",
+    "minimum-stability": "stable",
     "license": "MIT",
     "authors": [
         {
@@ -16,5 +17,13 @@
     "require": {},
     "require-dev": {
         "phpunit/phpunit": "3.7.14"
+    },
+    "keywords": ["test", "phplib"],
+    "homepage": "http://bj83.de",
+    "config": {
+        "process-timeout": 300,
+        "platform": {"php": "5.4"},
+        "vendor-dir": "vendor",
+        "bin-dir": "bin"
     }
 }
