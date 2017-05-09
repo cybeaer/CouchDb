@@ -1,0 +1,20 @@
+{
+    "name": "phplib/couchdb",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Michael Attenberger",
+            "email": "attenberger@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-0" : {
+            "phplib\\DbAccess\\CouchDb" : "src"
+        }
+    },
+    "require": {},
+    "require-dev": {
+        "phpunit/phpunit": "3.7.14"
+    }
+}
