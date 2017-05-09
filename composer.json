@@ -10,7 +10,10 @@
         }
     ],
     "autoload": {
-        "psr-4": {"phplib\\DbAccess\\CouchDb": "src/"}
+        "psr-0" : {
+            "phplib\\DbAccess\\CouchDb" : "src"
+        },
+        "psr-4": {"phplib\\DbAccess\\CouchDb": "src"}
     },
     "require": {},
     "require-dev": {
