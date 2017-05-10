@@ -3,7 +3,6 @@
 namespace phplib\DbAccess;
 
 use InvalidArgumentException;
-use UnexpectedValueException;
 
 class CouchDb
 {
@@ -124,14 +123,14 @@ class CouchDb
 
         if ($force != null && !is_bool($force)) {
             throw new InvalidArgumentException('force can only be true or false.');
-        } else {
-            if ($force) {
-                $ch = $this->curlPrepare('GET', $this->couch_user, $this->couch_pass);
-                $ch = $this->curlSetUrl($ch, $id);
-                $res = $this->curlExec($ch);
-                $this->curlClose($ch);
-                $data->_rev = $res->_rev;
-            }
+        }
+
+        if (($force!= null && $force) || $method == 'DELETE') {
+            $ch = $this->curlPrepare('GET', $this->couch_user, $this->couch_pass);
+            $ch = $this->curlSetUrl($ch, $id);
+            $res = $this->curlExec($ch);
+            $this->curlClose($ch);
+            $data->_rev = $res->_rev;
         }
 
         $ch = $this->curlPrepare($method, $this->couch_user, $this->couch_pass);
@@ -144,6 +143,38 @@ class CouchDb
         return $res;
     }
 
+    /**
+     * @param $id
+     * @param $filename
+     * @return mixed
+     *
+     */
+    public function addAttachment($id, $filename)
+    {
+        $ch = $this->curlPrepare('GET', $this->couch_user, $this->couch_pass);
+        $ch = $this->curlSetUrl($ch, $id);
+        $res = $this->curlExec($ch);
+        $this->curlClose($ch);
+        $rev = $res->_rev;
+
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $contentType = finfo_file($finfo, $filename);
+
+        $payload = file_get_contents($filename);
+
+        $header = array(
+            'Content-type: ' . $contentType,
+            'Accept: */*'
+        );
+
+        $ch = $this->curlPrepare('PUT', $this->couch_user, $this->couch_pass);
+        $ch = $this->curlSetUrl($ch, $id . '?rev=' . $rev);
+        $ch = $this->curlSetHeader($ch, $header);
+        $ch = $this->curlSetData($ch, $payload);
+        $res = $this->curlExec($ch);
+        $this->curlClose($ch);
+        return $res;
+    }
 
     /* ------------------------- privates ------------------------- */
     /**
@@ -202,6 +233,20 @@ class CouchDb
     }
 
     /**
+     * @param $ch
+     * @param array $header
+     * @return mixed
+     */
+    private function curlSetHeader($ch, Array $header)
+    {
+        if ($ch == null || !is_object($ch)) {
+            throw new InvalidArgumentException('curl object cant be null.');
+        }
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
+        return $ch;
+    }
+
+    /**
      * @param $mode
      * @param null $user
      * @param null $pass
@@ -237,26 +282,4 @@ class CouchDb
 
         return $ch;
     }
-
-    /* ------------------------- test call ------------------------- */
-    public function test()
-    {
-        $ch = curl_init();
-
-        curl_setopt($ch, CURLOPT_URL, $this->couch_server . ':' . $this->couch_port . '/' . $this->couch_db . '/_design/testdocs/_view/all');
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');//PUT,DELETE
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-            'Content-type: application/json',
-            'Accept: */*'
-        ));
-
-        curl_setopt($ch, CURLOPT_USERPWD, $this->couch_user . ':' . $this->couch_pass);
-        $response = curl_exec($ch);
-
-        curl_close($ch);
-
-        return $response;
-    }
-
 }
