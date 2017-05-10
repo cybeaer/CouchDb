@@ -21,12 +21,12 @@ class CouchDb
     public function setServer($server = 'http://127.0.0.1', $port = 5984)
     {
         if (!is_string($server)) {
-            throw new InvalidArgumentException('server have to string.');
+            throw new InvalidArgumentException('server have to be string.');
         }
         $this->couch_server = $server;
 
         if (!is_string($port) && !is_int($port)) {
-            throw new InvalidArgumentException('port have to string or int.');
+            throw new InvalidArgumentException('port have to be string or int.');
         }
         $this->couch_port = $port;
     }
@@ -82,6 +82,7 @@ class CouchDb
         if ($keyValue != null && (!is_string($keyValue) || $keyValue = '')) {
             throw new InvalidArgumentException('when key value is given it have to be string and cant be empty.');
         }
+
         $ch = $this->curlPrepare('GET', $this->couch_user, $this->couch_pass);
         if ($key != null && $keyValue != null) {
             $ch = $this->curlSetUrl($ch, '_design/' . $design . '/_view/' . $view . '?' . $key . '=\'' . $keyValue . '\'');
@@ -94,28 +95,93 @@ class CouchDb
     }
 
     /**
+     * @param $method
+     * @param $id
+     * @param null $data
+     * @param bool $force
+     * @return mixed
+     */
+    public function send($method, $id, $data = null, $force = false)
+    {
+        if ($method == null || !is_string($method) || $method == '' || ($method != 'GET' && $method != 'PUT' && $method != 'DELETE')) {
+            throw new InvalidArgumentException('method can only be GET|PUT|DELETE.');
+        }
+
+        if ($id != null) {
+            throw new InvalidArgumentException('id cant be null.');
+        }
+        if (!is_string($id) && !is_numeric($id)) {
+            throw new InvalidArgumentException('id have to be string or numeric.');
+        }
+
+        if ($data != null && (!is_object($data) && !is_string($data))) {
+            throw new InvalidArgumentException('data have to be object or json string.');
+        } else {
+            if (!is_object($data)) {
+                $data = json_decode($data);
+            }
+        }
+
+        if ($force != null && !is_bool($force)) {
+            throw new InvalidArgumentException('force can only be true or false.');
+        } else {
+            if ($force) {
+                $ch = $this->curlPrepare('GET', $this->couch_user, $this->couch_pass);
+                $ch = $this->curlSetUrl($ch, $id);
+                $res = $this->curlExec($ch);
+                $this->curlClose($ch);
+                $data->_rev = $res->_rev;
+            }
+        }
+
+        $ch = $this->curlPrepare($method, $this->couch_user, $this->couch_pass);
+        $ch = $this->curlSetUrl($ch, $id);
+        if ($data != null) {
+            $ch = $this->curlSetData($ch, $data);
+        }
+        $res = $this->curlExec($ch);
+        $this->curlClose($ch);
+        return $res;
+    }
+
+
+    /* ------------------------- privates ------------------------- */
+    /**
      * @param $ch
      * @return mixed
      */
     private function curlExec($ch)
     {
-        if ($ch == null) {
+        if ($ch == null || !is_object($ch)) {
             throw new InvalidArgumentException('curl object cant be null.');
         }
         $response = curl_exec($ch);
         return $response;
     }
 
-    /* ------------------------- privates ------------------------- */
     /**
      * @param $ch
      */
     private function curlClose($ch)
     {
-        if ($ch == null) {
+        if ($ch == null || !is_object($ch)) {
             throw new InvalidArgumentException('curl object cant be null.');
         }
         curl_close($ch);
+    }
+
+    /**
+     * @param $ch
+     * @param $data
+     * @return mixed
+     */
+    private function curlSetData($ch, $data)
+    {
+        if ($data != null && (!is_object($data) && !is_string($data))) {
+            throw new InvalidArgumentException('data have to be object or json string.');
+        }
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+        return $ch;
     }
 
     /**
@@ -125,7 +191,7 @@ class CouchDb
      */
     private function curlSetUrl($ch, $url)
     {
-        if ($ch == null) {
+        if ($ch == null || !is_object($ch)) {
             throw new InvalidArgumentException('curl object cant be null.');
         }
         if ($url == null || $url == '') {
