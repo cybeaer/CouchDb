@@ -179,6 +179,14 @@ class CouchDb
         return $res;
     }
 
+    public function createDesign(){
+
+    }
+
+    public function createView(){
+        
+    }
+
     /* ------------------------- privates ------------------------- */
     /**
      * @param $ch
