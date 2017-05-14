@@ -129,10 +129,16 @@ class CouchDb
         }
 
         $ch = $this->curlPrepare($method, $this->couch_user, $this->couch_pass);
-        $ch = $this->curlSetUrl($ch, $id);
         if ($data != null) {
+            if (($force != null && $force || $data->_rev != null) || $method == 'DELETE') {
+                $id = $id.'?rev='.$data->_rev;
+            }
+            if(!is_object($data)){
+                $data = json_encode($data);
+            }
             $ch = $this->curlSetData($ch, $data);
         }
+        $ch = $this->curlSetUrl($ch, $id);
         $res = $this->curlExec($ch);
         $this->curlClose($ch);
         return $res;
@@ -179,12 +185,95 @@ class CouchDb
         return $res;
     }
 
-    public function createDesign(){
+    /**
+     * @param $designName
+     * @param $viewName
+     * @param $script
+     * @return mixed
+     */
+    public function createView($designName, $viewName, $script){
+        if ($designName == null || !is_string($designName) || $designName == ''){
+            throw new InvalidArgumentException('Design name have to be string and cant be null or empty.');
+        }
+        if($viewName == null || !is_string($viewName) || $viewName == ''){
+            throw new InvalidArgumentException('View name have to be string and cant be null or empty.');
+        }
+        if($script == null || !is_string($script) || $script == ''){
+            throw new InvalidArgumentException('View script have to be string and cant be null or empty.');
+        }
+        $ch = $this->curlPrepare('GET', $this->couch_user, $this->couch_pass);
+        $ch = $this->curlSetUrl($ch, '_design/'.$designName);
+        $req = $this->curlExec($ch);
+        $this->curlClose($ch);
 
+        $req = json_decode($req);
+        var_dump($script);
+        $script = json_decode($script);
+        var_dump($script);
+        $newDoc = '';
+
+        if(isset($req->error)){
+            $newDoc = json_decode('{"_id": "_design/'.$designName.'","language": "javascript","views": {}}');
+            $newDoc->views->{$viewName} = $script;
+        }else{
+            if(isset($req->views->$viewName)){
+                $req->views->$viewName = $script;
+            }else{
+                $req->views->{$viewName} = $script;
+            }
+            $newDoc = $req;
+        }
+
+        var_dump($newDoc);
+
+        $ch = $this->curlPrepare('PUT', $this->couch_user, $this->couch_pass);
+        $ch = $this->curlSetUrl($ch, '_design/'.$designName);
+        if ($newDoc != null) {
+            $ch = $this->curlSetData($ch, $newDoc);
+        }
+        $res = $this->curlExec($ch);
+        $this->curlClose($ch);
+
+        return $res;
     }
 
-    public function createView(){
-        
+    /**
+     * @param $designName
+     * @param $viewName
+     */
+    public function deleteView($designName, $viewName = null){
+        if ($designName == null || !is_string($designName) || $designName == ''){
+            throw new InvalidArgumentException('Design name have to be string and cant be null or empty.');
+        }
+        if($viewName != null && (!is_string($viewName) || $viewName == '')){
+            throw new InvalidArgumentException('View name have to be string and cant be null or empty.');
+        }
+
+        $ch = $this->curlPrepare('GET', $this->couch_user, $this->couch_pass);
+        $ch = $this->curlSetUrl($ch, '_design/'.$designName);
+        $req = $this->curlExec($ch);
+        $this->curlClose($ch);
+
+        $req = json_decode($req);
+        $res = null;
+
+        if($viewName == null) {
+            $ch = $this->curlPrepare('DELETE', $this->couch_user, $this->couch_pass);
+            $ch = $this->curlSetUrl($ch, '_design/' . $designName.'?rev='.$req->_rev);
+
+        }else{
+            if(isset($req->views->$viewName)) {
+                unset($req->views->$viewName);
+                $ch = $this->curlPrepare('PUT', $this->couch_user, $this->couch_pass);
+                $ch = $this->curlSetUrl($ch, '_design/' . $designName.'?rev='.$req->_rev);
+                $ch = $this->curlSetData($ch, json_encode($req));
+            }
+
+        }
+        $res = $this->curlExec($ch);
+        $this->curlClose($ch);
+
+        return $res;
     }
 
     /* ------------------------- privates ------------------------- */
@@ -217,6 +306,9 @@ class CouchDb
     {
         $this->checkCH($ch);
         $this->checkData($data);
+        if(is_object($data)){
+            $data = json_encode($data);
+        }
         curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
         return $ch;
     }
@@ -289,7 +381,7 @@ class CouchDb
      */
     private function checkCH($ch)
     {
-        if ($ch == null || !is_object($ch)) {
+        if ($ch == null || !is_resource($ch)) {
             throw new InvalidArgumentException('curl object cant be null.');
         }
     }
