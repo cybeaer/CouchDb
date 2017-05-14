@@ -8,7 +8,7 @@
 
 require_once 'src/CouchDb.php';
 
-use phplib\DbAccess\CouchDb;
+use phplib\CouchDb;
 use PHPUnit_Framework_TestCase;
 
 class CouchDbTest extends PHPUnit_Framework_TestCase

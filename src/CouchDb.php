@@ -1,6 +1,6 @@
 <?php
 
-namespace phplib\DbAccess;
+namespace phplib;
 
 use InvalidArgumentException;
 

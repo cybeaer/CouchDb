@@ -12,11 +12,11 @@
         }
     ],
     "autoload": {
-        "psr-4": {"phplib\\DbAccess\\CouchDb\\": "src/"}
+        "psr-4": {"phplib\\CouchDb\\": "src/"}
     },
     "autoload-dev": {
         "psr-4": {
-            "phplib\\DbAccess\\CouchDb\\": "tests/"
+            "phplib\\CouchDb\\": "tests/"
     	}
     },
     "archive": {
