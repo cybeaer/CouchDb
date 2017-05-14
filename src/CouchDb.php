@@ -4,6 +4,24 @@ namespace phplib\DbAccess;
 
 use InvalidArgumentException;
 
+/*new user doc
+{
+    "_id": "org.couchdb.user:dbreader",
+    "name": "dbreader",
+    "type": "user",
+    "roles": [],
+    "password": "plaintext_password"
+}
+*/
+
+/*new view doc
+{
+    "map": "function(doc) {
+        if (doc.type == 'testdoc' && data != '') { emit(doc._id, doc); }
+                          }"
+}
+*/
+
 class CouchDb
 {
     private $couch_server = '';
