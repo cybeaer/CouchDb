@@ -136,7 +136,7 @@ class CouchDb
             }
         }
 
-        if($method == 'PUT' && $data == null){
+        if ($method == 'PUT' && $data == null) {
             throw new InvalidArgumentException('Data cant be null at PUT.');
         }
 
