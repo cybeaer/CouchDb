@@ -29,6 +29,24 @@ class CouchDbTest extends TestCase
         return $cdb;
     }
 
+    /**
+     * Call protected/private method of a class.
+     *
+     * @param object &$object Instantiated object that we will run method on.
+     * @param string $methodName Method name to call
+     * @param array $parameters Array of parameters to pass into method.
+     *
+     * @return mixed Method return.
+     */
+    public function invokeMethod(&$object, $methodName, array $parameters = array())
+    {
+        $reflection = new \ReflectionClass(get_class($object));
+        $method = $reflection->getMethod($methodName);
+        $method->setAccessible(true);
+
+        return $method->invokeArgs($object, $parameters);
+    }
+
     /* ---------------------------------- dataprovider ---------------------------------- */
     public function ProviderConstruct()
     {
@@ -64,6 +82,83 @@ class CouchDbTest extends TestCase
         );
     }
 
+    public function ProviderCheckId()
+    {
+        return array(
+            array('someid', null),
+            array(123, null),
+            array(new stdClass(), InvalidArgumentException::class),
+            array(null, InvalidArgumentException::class),
+        );
+    }
+
+    public function ProviderCheckCh()
+    {
+        $ch = curl_init();
+        return array(
+            array($ch, null),
+            array('not a resource', InvalidArgumentException::class),
+            array(null, InvalidArgumentException::class),
+
+        );
+    }
+
+    public function ProviderCheckUrl()
+    {
+        return array(
+            array('someurl', null),
+            array('', InvalidArgumentException::class),
+            array(123, InvalidArgumentException::class),
+            array(null, InvalidArgumentException::class),
+        );
+    }
+
+    public function ProviderCheckData()
+    {
+        $stringData = '{someAttribute: someValue}';
+        $objectData = new stdClass();
+        $objectData->someAttribute = 'someValue';
+        return array(
+            array($stringData, null),
+            array($objectData, null),
+            array('', InvalidArgumentException::class),
+            array(null, null),
+            array(123, InvalidArgumentException::class),
+        );
+    }
+
+    public function ProviderSetHeader()
+    {
+        $ch = curl_init();
+        $header = array('Content-type: text/plain', 'Content-length: 100');
+        return array(
+            array($ch, $header, null),
+            array($ch, 'not a array', TypeError::class),
+            array($ch, null, TypeError::class),
+            array('not a ressource', $header, InvalidArgumentException::class),
+            array(null, $header, InvalidArgumentException::class),
+        );
+    }
+
+    public function ProviderCurlPrepare()
+    {
+        return array(
+            array('GET', 'user', 'pass', null),
+            array('GET', null, null, null),
+            array('PUT', 'user', 'pass', null),
+            array('DELETE', 'user', 'pass', null),
+            array('GETS', 'user', 'pass', InvalidArgumentException::class),
+            array('GET', null, 'pass', InvalidArgumentException::class),
+            array('GET', 'user', null, InvalidArgumentException::class),
+            array('GET', 'user', 123, InvalidArgumentException::class),
+            array('GET', 123, 'pass', InvalidArgumentException::class),
+            array('GET', null, 'pass', InvalidArgumentException::class),
+            array('GET', '', 'pass', InvalidArgumentException::class),
+            array('GET', 'user', '', null),
+            array('GET', '', '', null),
+        );
+    }
+
     /* ---------------------------------- unit tests ---------------------------------- */
     /**
      * @dataProvider ProviderConstruct
@@ -89,8 +184,6 @@ class CouchDbTest extends TestCase
      * @param $method
      * @param $id
      * @param $data
-     * @param $force
-     * @param $result
      * @param $exception
      */
     public function testSendCommand($method, $id, $data, $exception)
@@ -114,5 +207,109 @@ class CouchDbTest extends TestCase
             default:
                 break;
         }
+    }
+
+    //public function testAddAttachment(){}
+
+    //public function testGetView(){}
+
+    //public function testCreateView(){}
+
+    //public function testDeleteView(){}
+
+    /* ---------------------------------- unit tests - privates ---------------------------------- */
+    /**
+     * @dataProvider ProviderCheckId
+     * @param $id
+     * @param $expection
+     */
+    public function testCheckId($id, $expection)
+    {
+        if ($expection != null) {
+            $this->expectException($expection);
+        }
+        $cdb = new CouchDb();
+        $this->invokeMethod($cdb, 'checkId', array($id));
+        self::assertTrue(true);
+    }
+
+    /**
+     * @dataProvider ProviderCheckCh
+     * @param $ch
+     * @param $expection
+     */
+    public function testCheckCH($ch, $expection)
+    {
+        if ($expection != null) {
+            $this->expectException($expection);
+        }
+        $cdb = new CouchDb();
+        $this->invokeMethod($cdb, 'checkCH', array($ch));
+        self::assertTrue(true);
+    }
+
+    /**
+     * @dataProvider ProviderCheckUrl
+     * @param $url
+     * @param $expection
+     */
+    public function testCheckUrl($url, $expection)
+    {
+        if ($expection != null) {
+            $this->expectException($expection);
+        }
+        $cdb = new CouchDb();
+        $this->invokeMethod($cdb, 'checkUrl', array($url));
+        self::assertTrue(true);
+    }
+
+    /**
+     * @dataProvider ProviderCheckData
+     * @param $data
+     * @param $expection
+     */
+    public function testCheckData($data, $expection)
+    {
+        if ($expection != null) {
+            $this->expectException($expection);
+        }
+        $cdb = new CouchDb();
+        $this->invokeMethod($cdb, 'checkData', array($data));
+        self::assertTrue(true);
+    }
+
+    /**
+     * @dataProvider ProviderSetHeader
+     * @param $ch
+     * @param $header
+     * @param $expection
+     */
+    public function testCurlSetHeader($ch, $header, $expection)
+    {
+        if ($expection != null) {
+            $this->expectException($expection);
+        }
+        $cdb = new CouchDb();
+        $ret = $this->invokeMethod($cdb, 'curlSetHeader', array($ch, $header));
+        $this->assertNotNull($ret);
+        $this->assertTrue(is_resource($ret));
+    }
+
+    /**
+     * @dataProvider ProviderCurlPrepare
+     * @param $mode
+     * @param $user
+     * @param $pass
+     * @param $expection
+     */
+    public function testCurlPrepare($mode, $user, $pass, $expection)
+    {
+        if ($expection != null) {
+            $this->expectException($expection);
+        }
+        $cdb = new CouchDb();
+        $ret = $this->invokeMethod($cdb, 'curlPrepare', array($mode, $user, $pass));
+        $this->assertNotNull($ret);
+        $this->assertTrue(is_resource($ret));
     }
 }

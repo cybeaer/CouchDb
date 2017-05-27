@@ -373,13 +373,13 @@ class CouchDb
         if ($mode == null || ($mode != 'GET' && $mode != 'PUT' && $mode != 'DELETE')) {
             throw new InvalidArgumentException('mode have to be "GET|PUT|DELETE".');
         }
-        if (($user != null && $user != '') && ($pass == null || $pass == '')) {
-            throw new InvalidArgumentException('if user is given pass cant be null or empty.');
+        if (($user != null && trim($user) !== '') && $pass === null) {
+            throw new InvalidArgumentException('if user is given pass cant be empty.');
         }
-        if (($pass != null && $pass != '') && ($user == null || $user == '')) {
+        if ($pass != null && ($user == null || $user === '')) {
             throw new InvalidArgumentException('if pass is given user cant be null or empty.');
         }
-        if (($user != null && $pass != null) && ($user != '' && $pass != '') && (!is_string($user) || !is_string($pass))) {
+        if (($user != null && $pass != null) && (!is_string($user) || !is_string($pass))) {
             throw new InvalidArgumentException('user and pass have to be string and cant be empty.');
         }
 
@@ -415,7 +415,7 @@ class CouchDb
      */
     private function checkUrl($url)
     {
-        if ($url == null || $url == '') {
+        if ($url == null || $url == '' || !is_string($url)) {
             throw new InvalidArgumentException('url cant be null or empty.');
         }
     }
@@ -427,6 +427,9 @@ class CouchDb
     {
         if ($data != null && (!is_object($data) && !is_string($data))) {
             throw new InvalidArgumentException('data have to be object or json string.');
+        }
+        if (is_string($data) && trim($data) == '') {
+            throw new InvalidArgumentException('data cant be empty.');
         }
     }
 
