@@ -1,1 +1,1 @@
-phpunit-48 --coverage-html ../tests/couchdb test/
+phpunit --coverage-html ../tests/couchdb test/

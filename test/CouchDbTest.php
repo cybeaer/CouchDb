@@ -16,7 +16,8 @@ class CouchDbTest extends TestCase
      * @param $pass
      * @return CouchDb
      */
-    private function initConnection($server, $port, $db, $user, $pass){
+    private function initConnection($server, $port, $db, $user, $pass)
+    {
         $cdb = new CouchDb();
         if ($server != null && $port != null) {
             $cdb->setServer($server, $port);
@@ -43,9 +44,35 @@ class CouchDbTest extends TestCase
         );
     }
 
+    public function ProviderSendCommand()
+    {
+        //$method, $id, $data, $force, $result, $exception
+        $testData = new stdClass();
+        $testData->id = 'testid';
+        $testData->someAttribute = 'testValue';
+        return array(
+            array('PUT', 'testid', $testData, null),
+            array('PUT', 'testid', json_encode($testData), null),
+            array('PUT', 'testid', 123, InvalidArgumentException::class),
+            array('wrong method', 'testid', $testData, InvalidArgumentException::class),
+            array('PUT', 'testid', null, InvalidArgumentException::class),
+            array('PUT', new stdClass(), $testData, InvalidArgumentException::class),
+            array('GET', 'testid', null, null),
+            array('GET', new stdClass(), null, InvalidArgumentException::class),
+            array('DELETE', 'testid', null, null),
+            array('DELETE', new stdClass(), null, InvalidArgumentException::class),
+        );
+    }
+
     /* ---------------------------------- unit tests ---------------------------------- */
     /**
      * @dataProvider ProviderConstruct
+     * @param $server
+     * @param $port
+     * @param $db
+     * @param $user
+     * @param $pass
+     * @param $expection
      */
     public function testConstruct($server, $port, $db, $user, $pass, $expection)
     {
@@ -57,12 +84,35 @@ class CouchDbTest extends TestCase
         $this->assertTrue(true);
     }
 
-    public function testSendCommand($exception){
-        if ($exception != null){
-            $this->expectExceptionCode($exception);
+    /**
+     * @dataProvider ProviderSendCommand
+     * @param $method
+     * @param $id
+     * @param $data
+     * @param $force
+     * @param $result
+     * @param $exception
+     */
+    public function testSendCommand($method, $id, $data, $exception)
+    {
+        if ($exception != null) {
+            $this->expectException($exception);
         }
-
-
-
+        $cdb = $this->initConnection('http://127.0.0.1', 5984, 'unittests', 'phpunit', 'unittests');
+        $return = $cdb->send($method, $id, $data);
+        $return = json_decode($return);
+        switch ($method) {
+            case 'GET':
+                $this->assertTrue(isset($return->_id) && $return->_id == $id);
+                break;
+            case 'PUT':
+                $this->assertTrue(isset($return->ok) && $return->ok == true);
+                break;
+            case 'DELETE':
+                $this->assertTrue(isset($return->ok) && $return->ok == true);
+                break;
+            default:
+                break;
+        }
     }
 }
