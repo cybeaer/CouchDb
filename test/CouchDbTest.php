@@ -1,16 +1,11 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: mike
- * Date: 09.05.2017
- * Time: 21:39
- */
-
 require_once 'src/CouchDb.php';
+require_once 'vendor/autoload.php';
 
 use phplib\CouchDb;
+use PHPUnit\Framework\TestCase;
 
-class CouchDbTest extends PHPUnit_Framework_TestCase
+class CouchDbTest extends TestCase
 {
     /* ---------------------------------- multiuse functions ---------------------------------- */
     /**
@@ -55,9 +50,19 @@ class CouchDbTest extends PHPUnit_Framework_TestCase
     public function testConstruct($server, $port, $db, $user, $pass, $expection)
     {
         if ($expection != null) {
-            $this->setExpectedException($expection);
+            $this->expectException($expection);
         }
 
         $this->initConnection($server, $port, $db, $user, $pass);
+        $this->assertTrue(true);
+    }
+
+    public function testSendCommand($exception){
+        if ($exception != null){
+            $this->expectExceptionCode($exception);
+        }
+
+
+
     }
 }
