@@ -162,13 +162,13 @@ class CouchDbTest extends TestCase
     public function ProviderAddAttachment()
     {
         return array(
-            array('testdata','testcoverage.png', null),
-            array('testdata','testcoverage_not_exist.png', InvalidArgumentException::class),
-            array('testdata',null, InvalidArgumentException::class),
-            array('testdata','', InvalidArgumentException::class),
-            array(null,'testcoverage.png', InvalidArgumentException::class),
-            array('','testcoverage.png', InvalidArgumentException::class),
-            array(123,'testcoverage.png', InvalidArgumentException::class),
+            array('testdata', 'testcoverage.png', null),
+            array('testdata', 'testcoverage_not_exist.png', InvalidArgumentException::class),
+            array('testdata', null, InvalidArgumentException::class),
+            array('testdata', '', InvalidArgumentException::class),
+            array(null, 'testcoverage.png', InvalidArgumentException::class),
+            array('', 'testcoverage.png', InvalidArgumentException::class),
+            array(123, 'testcoverage.png', InvalidArgumentException::class),
         );
     }
 
@@ -179,6 +179,48 @@ class CouchDbTest extends TestCase
             array(false, null),
             array('some other value', InvalidArgumentException::class),
             array(null, InvalidArgumentException::class),
+        );
+    }
+
+    public function ProviderCreateView()
+    {
+        $script = new stdClass();
+        $script->map = "function(doc) { if (doc.type == 'testdoc' && data != '') { emit(doc._id, doc); } }";
+        $script = json_encode($script);
+        return array(
+            array('testDesign', 'testView', $script, null),
+            array('testDesign', 'testView', $script, null),
+            array('testDesign', 'testView2', $script, null),
+            array('testDesign', 'testView', '', InvalidArgumentException::class),
+            array('testDesign', '', $script, InvalidArgumentException::class),
+            array('testDesign', null, $script, InvalidArgumentException::class),
+            array('testDesign', 123, $script, InvalidArgumentException::class),
+            array('testDesign', new stdClass(), $script, InvalidArgumentException::class),
+            array('', 'testView', $script, InvalidArgumentException::class),
+            array(null, 'testView', $script, InvalidArgumentException::class),
+            array(123, 'testView', $script, InvalidArgumentException::class),
+            array(new stdClass(), 'testView', $script, InvalidArgumentException::class),
+        );
+    }
+
+    public function ProviderDeleteView()
+    {
+        return array(
+            array('testDesign', 'testView', null),
+            array('testDesign', null, null),
+            array('testDesign', '', InvalidArgumentException::class),
+            array('testDesign', 123, InvalidArgumentException::class),
+            array('testDesign', new stdClass(), InvalidArgumentException::class),
+            array(null, 'testView', InvalidArgumentException::class),
+            array('', 'testView', InvalidArgumentException::class),
+            array(123, 'testView', InvalidArgumentException::class),
+            array(new stdClass(), 'testView', InvalidArgumentException::class),
+        );
+    }
+
+    public function ProviderGetView(){
+        return array(
+            array('testDesign','testView',"['val1','val2']",null),
         );
     }
 
@@ -262,16 +304,73 @@ class CouchDbTest extends TestCase
         $cdb->setResponseAsObject(true);
         $testData = new stdClass();
         $testData->id = 'testdata';
-        $putResponse = $cdb->send('PUT', $id, $testData);
-        $return = $cdb->addAttachment($id,$filename);
+        $cdb->send('PUT', $id, $testData);
+        $return = $cdb->addAttachment($id, $filename);
         $this->assertTrue(isset($return->ok) && $return->ok == true);
     }
 
-    //public function testGetView(){}
+    /**
+     * @dataProvider ProviderCreateView
+     * @param $design
+     * @param $view
+     * @param $script
+     * @param $exception
+     */
+    public function testCreateView($design, $view, $script, $exception)
+    {
+        if ($exception != null) {
+            $this->expectException($exception);
+        }
+        $cdb = $this->initConnection('http://127.0.0.1', 5984, 'unittests', 'phpunit', 'unittests');
+        $cdb->setResponseAsObject(true);
+        $return = $cdb->createView($design, $view, $script);
+        self::assertTrue(isset($return->ok) && $return->ok == true);
+    }
 
-    //public function testCreateView(){}
+    /**
+     * @dataProvider ProviderDeleteView
+     * @param $design
+     * @param $view
+     * @param $exception
+     */
+    public function testDeleteView($design, $view, $exception)
+    {
+        if ($exception != null) {
+            $this->expectException($exception);
+        }
+        $cdb = $this->initConnection('http://127.0.0.1', 5984, 'unittests', 'phpunit', 'unittests');
+        $cdb->setResponseAsObject(true);
+        $script = new stdClass();
+        $script->map = "function(doc) { if (doc.type == 'testdoc' && data != '') { emit(doc._id, doc); } }";
+        $script = json_encode($script);
+        $cdb->createView('testDesign', 'testView', $script);
+        $return = $cdb->deleteView($design, $view);
+        self::assertTrue(isset($return->ok) && $return->ok == true);
+    }
 
-    //public function testDeleteView(){}
+    /**
+     * @dataProvider ProviderGetView
+     * @param $design
+     * @param $view
+     * @param $key
+     * @param $keyValue
+     * @param $exception
+     */
+    public function testGetView($design, $view, $keyValue, $exception)
+    {
+        if ($exception != null) {
+            $this->expectException($exception);
+        }
+        $cdb = $this->initConnection('http://127.0.0.1', 5984, 'unittests', 'phpunit', 'unittests');
+        $cdb->setResponseAsObject(true);
+        $script = new stdClass();
+        $script->map = "function(doc) { if (doc.key && doc.id) { emit(doc._id, doc); });  }}";
+        $script = json_encode($script);
+        $cdb->createView('testDesign', 'testView', $script);
+        $return = $cdb->getView($design, $view, $keyValue);
+        var_dump($return);
+        self::assertTrue(isset($return->ok) && $return->ok == true);
+    }
 
     /* ---------------------------------- unit tests - privates ---------------------------------- */
     /**

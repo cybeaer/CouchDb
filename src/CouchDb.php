@@ -112,7 +112,7 @@ class CouchDb
      * @param null $keyValue
      * @return mixed
      */
-    public function getView($design, $view, $key = null, $keyValue = null)
+    public function getView($design, $view, $keyValue = null)
     {
         if ($design == null || !is_string($design) || $design == '') {
             throw new InvalidArgumentException('design have to be string and cant be null or empty.');
@@ -120,16 +120,13 @@ class CouchDb
         if ($view == null || !is_string($view) || $view = '') {
             throw new InvalidArgumentException('view have to be string and cant be null or empty.');
         }
-        if ($key != null && (!is_string($key) || $key == '')) {
-            throw new InvalidArgumentException('when key is given it have to be string and cant be empty.');
-        }
         if ($keyValue != null && (!is_string($keyValue) || $keyValue = '')) {
             throw new InvalidArgumentException('when key value is given it have to be string and cant be empty.');
         }
 
         $ch = $this->curlPrepare('GET', $this->couch_user, $this->couch_pass);
-        if ($key != null && $keyValue != null) {
-            $ch = $this->curlSetUrl($ch, '_design/' . $design . '/_view/' . $view . '?' . $key . '=\'' . $keyValue . '\'');
+        if ($keyValue != null) {
+            $ch = $this->curlSetUrl($ch, '_design/' . $design . '/_view/' . $view . '?key=' . $keyValue);
         } else {
             $ch = $this->curlSetUrl($ch, '_design/' . $design . '/_view/' . $view);
         }
@@ -294,7 +291,7 @@ class CouchDb
         if ($designName == null || !is_string($designName) || $designName == '') {
             throw new InvalidArgumentException('Design name have to be string and cant be null or empty.');
         }
-        if ($viewName != null && (!is_string($viewName) || $viewName == '')) {
+        if ($viewName !== null && (!is_string($viewName) || $viewName == '')) {
             throw new InvalidArgumentException('View name have to be string and cant be null or empty.');
         }
 
