@@ -159,6 +159,29 @@ class CouchDbTest extends TestCase
         );
     }
 
+    public function ProviderAddAttachment()
+    {
+        return array(
+            array('testdata','testcoverage.png', null),
+            array('testdata','testcoverage_not_exist.png', InvalidArgumentException::class),
+            array('testdata',null, InvalidArgumentException::class),
+            array('testdata','', InvalidArgumentException::class),
+            array(null,'testcoverage.png', InvalidArgumentException::class),
+            array('','testcoverage.png', InvalidArgumentException::class),
+            array(123,'testcoverage.png', InvalidArgumentException::class),
+        );
+    }
+
+    public function ProviderResponseAsObject()
+    {
+        return array(
+            array(true, null),
+            array(false, null),
+            array('some other value', InvalidArgumentException::class),
+            array(null, InvalidArgumentException::class),
+        );
+    }
+
     /* ---------------------------------- unit tests ---------------------------------- */
     /**
      * @dataProvider ProviderConstruct
@@ -209,7 +232,40 @@ class CouchDbTest extends TestCase
         }
     }
 
-    //public function testAddAttachment(){}
+    /**
+     * @dataProvider ProviderResponseAsObject
+     * @param $option
+     * @param $expection
+     */
+    public function testSetResponseAsObject($option, $expection)
+    {
+        if ($expection != null) {
+            $this->expectException($expection);
+        }
+        $cdb = new CouchDb();
+        $cdb->setResponseAsObject($option);
+        $this->assertTrue(true);
+    }
+
+    /**
+     * @dataProvider ProviderAddAttachment
+     * @param $id
+     * @param $filename
+     * @param $exception
+     */
+    public function testAddAttachment($id, $filename, $exception)
+    {
+        if ($exception != null) {
+            $this->expectException($exception);
+        }
+        $cdb = $this->initConnection('http://127.0.0.1', 5984, 'unittests', 'phpunit', 'unittests');
+        $cdb->setResponseAsObject(true);
+        $testData = new stdClass();
+        $testData->id = 'testdata';
+        $putResponse = $cdb->send('PUT', $id, $testData);
+        $return = $cdb->addAttachment($id,$filename);
+        $this->assertTrue(isset($return->ok) && $return->ok == true);
+    }
 
     //public function testGetView(){}
 

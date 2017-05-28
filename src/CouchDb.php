@@ -4,7 +4,8 @@ namespace phplib;
 
 use InvalidArgumentException;
 
-/*new user doc
+//new user doc
+/*
 {
     "_id": "org.couchdb.user:dbreader",
     "name": "dbreader",
@@ -14,11 +15,25 @@ use InvalidArgumentException;
 }
 */
 
-/*new view doc
+//new view doc
+/*
 {
     "map": "function(doc) {
         if (doc.type == 'testdoc' && data != '') { emit(doc._id, doc); }
                           }"
+}
+*/
+
+//new design
+/*
+ {
+   "_id": "_design/someDesign",
+   "language": "javascript",
+   "views": {
+       "someView": {
+           "map": "function(doc) { if (doc.type == 'testdoc' && data != '') { emit(doc._id, doc); } }"
+       }
+   }
 }
 */
 
@@ -29,6 +44,7 @@ class CouchDb
     private $couch_user = '';
     private $couch_pass = '';
     private $couch_db = '';
+    private $responseAsObject = false;
 
     /* ------------------------- options ------------------------- */
     /**
@@ -77,6 +93,17 @@ class CouchDb
 
     }
 
+    /**
+     * @param bool $option
+     */
+    public function setResponseAsObject($option = false)
+    {
+        if (!is_bool($option)) {
+            throw new InvalidArgumentException('Response as Object can only take boolean option.');
+        }
+        $this->responseAsObject = $option;
+    }
+
     /* ------------------------- publics ------------------------- */
     /**
      * @param $design
@@ -108,7 +135,7 @@ class CouchDb
         }
         $res = $this->curlExec($ch);
         $this->curlClose($ch);
-        return $res;
+        return ($this->responseAsObject) ? json_decode($res) : $res;
     }
 
     /**
@@ -163,7 +190,7 @@ class CouchDb
         $ch = $this->curlSetUrl($ch, $id);
         $res = $this->curlExec($ch);
         $this->curlClose($ch);
-        return $res;
+        return ($this->responseAsObject) ? json_decode($res) : $res;
     }
 
     /**
@@ -175,6 +202,7 @@ class CouchDb
     public function addAttachment($id, $filename)
     {
         $this->checkId($id);
+
         if ($filename == null || $filename == '') {
             throw new InvalidArgumentException('filename cant be null or empty.');
         }
@@ -186,6 +214,7 @@ class CouchDb
         $ch = $this->curlSetUrl($ch, $id);
         $res = $this->curlExec($ch);
         $this->curlClose($ch);
+        $res = json_decode($res);
         $rev = $res->_rev;
 
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
@@ -198,13 +227,13 @@ class CouchDb
             'Accept: */*'
         );
 
-        $ch = $this->curlPrepare('PUT', $this->couch_user, $this->couch_pass);
-        $ch = $this->curlSetUrl($ch, $id . '?rev=' . $rev);
-        $ch = $this->curlSetHeader($ch, $header);
+        $ch = $this->curlPrepare('PUT', $this->couch_user, $this->couch_pass, $header);
+        $ch = $this->curlSetUrl($ch, $id . '/'.$filename.'?rev=' . $rev);
+        //$ch = $this->curlSetHeader($ch, $header);
         $ch = $this->curlSetData($ch, $payload);
         $res = $this->curlExec($ch);
         $this->curlClose($ch);
-        return $res;
+        return ($this->responseAsObject) ? json_decode($res) : $res;
     }
 
     /**
@@ -230,9 +259,7 @@ class CouchDb
         $this->curlClose($ch);
 
         $req = json_decode($req);
-        var_dump($script);
         $script = json_decode($script);
-        var_dump($script);
         $newDoc = '';
 
         if (isset($req->error)) {
@@ -247,8 +274,6 @@ class CouchDb
             $newDoc = $req;
         }
 
-        var_dump($newDoc);
-
         $ch = $this->curlPrepare('PUT', $this->couch_user, $this->couch_pass);
         $ch = $this->curlSetUrl($ch, '_design/' . $designName);
         if ($newDoc != null) {
@@ -257,7 +282,7 @@ class CouchDb
         $res = $this->curlExec($ch);
         $this->curlClose($ch);
 
-        return $res;
+        return ($this->responseAsObject) ? json_decode($res) : $res;
     }
 
     /**
@@ -297,7 +322,7 @@ class CouchDb
         $res = $this->curlExec($ch);
         $this->curlClose($ch);
 
-        return $res;
+        return ($this->responseAsObject) ? json_decode($res) : $res;
     }
 
     /* ------------------------- privates ------------------------- */
@@ -368,7 +393,7 @@ class CouchDb
      * @param null $pass
      * @return resource
      */
-    private function curlPrepare($mode, $user = null, $pass = null)
+    private function curlPrepare($mode, $user = null, $pass = null, $header = null)
     {
         if ($mode == null || ($mode != 'GET' && $mode != 'PUT' && $mode != 'DELETE')) {
             throw new InvalidArgumentException('mode have to be "GET|PUT|DELETE".');
@@ -387,10 +412,14 @@ class CouchDb
 
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $mode);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-            'Content-type: application/json',
-            'Accept: */*'
-        ));
+        if ($header == null) {
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                'Content-type: application/json',
+                'Accept: */*'
+            ));
+        } else {
+            $ch = $this->curlSetHeader($ch, $header);
+        }
 
         if ($user != null && $pass != null) {
             curl_setopt($ch, CURLOPT_USERPWD, $this->couch_user . ':' . $this->couch_pass);
