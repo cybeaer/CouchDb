@@ -117,18 +117,18 @@ class CouchDb
         if ($design == null || !is_string($design) || $design == '') {
             throw new InvalidArgumentException('design have to be string and cant be null or empty.');
         }
-        if ($view == null || !is_string($view) || $view = '') {
+        if ($view == null || !is_string($view) || $view == '') {
             throw new InvalidArgumentException('view have to be string and cant be null or empty.');
         }
-        if ($keyValue != null && (!is_string($keyValue) || $keyValue = '')) {
+        if ($keyValue !== null && (!is_string($keyValue) || $keyValue == '')) {
             throw new InvalidArgumentException('when key value is given it have to be string and cant be empty.');
         }
-
         $ch = $this->curlPrepare('GET', $this->couch_user, $this->couch_pass);
         if ($keyValue != null) {
-            $ch = $this->curlSetUrl($ch, '_design/' . $design . '/_view/' . $view . '?key=' . $keyValue);
+            $ch = $this->curlSetUrl($ch, '_design/' . $design . '/_view/' . $view . '?' . $keyValue);
         } else {
             $ch = $this->curlSetUrl($ch, '_design/' . $design . '/_view/' . $view);
+
         }
         $res = $this->curlExec($ch);
         $this->curlClose($ch);

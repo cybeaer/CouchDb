@@ -218,9 +218,20 @@ class CouchDbTest extends TestCase
         );
     }
 
-    public function ProviderGetView(){
+    public function ProviderGetView()
+    {
         return array(
-            array('testDesign','testView',"['val1','val2']",null),
+            array('testDesign', 'testView', null, null),
+            array('', 'testView', null, InvalidArgumentException::class),
+            array('testDesign', '', null, InvalidArgumentException::class),
+            array('testDesign', 'testView', '', InvalidArgumentException::class),
+            array(123, 'testView', null, InvalidArgumentException::class),
+            array('testDesign', 123, null, InvalidArgumentException::class),
+            array('testDesign', 'testView', 123, InvalidArgumentException::class),
+            array(new stdClass(), 'testView', null, InvalidArgumentException::class),
+            array('testDesign', new stdClass(), null, InvalidArgumentException::class),
+            array('testDesign', 'testView', new stdClass(), InvalidArgumentException::class),
+            array('testDesign', 'testView', 'key=123', null),
         );
     }
 
@@ -324,7 +335,7 @@ class CouchDbTest extends TestCase
         $cdb = $this->initConnection('http://127.0.0.1', 5984, 'unittests', 'phpunit', 'unittests');
         $cdb->setResponseAsObject(true);
         $return = $cdb->createView($design, $view, $script);
-        self::assertTrue(isset($return->ok) && $return->ok == true);
+        $this->assertTrue(isset($return->ok) && $return->ok == true);
     }
 
     /**
@@ -345,7 +356,7 @@ class CouchDbTest extends TestCase
         $script = json_encode($script);
         $cdb->createView('testDesign', 'testView', $script);
         $return = $cdb->deleteView($design, $view);
-        self::assertTrue(isset($return->ok) && $return->ok == true);
+        $this->assertTrue(isset($return->ok) && $return->ok == true);
     }
 
     /**
@@ -364,12 +375,11 @@ class CouchDbTest extends TestCase
         $cdb = $this->initConnection('http://127.0.0.1', 5984, 'unittests', 'phpunit', 'unittests');
         $cdb->setResponseAsObject(true);
         $script = new stdClass();
-        $script->map = "function(doc) { if (doc.key && doc.id) { emit(doc._id, doc); });  }}";
+        $script->map = 'function(doc) { if (doc.type == "testdoc") { emit(doc._id, doc); } }';
         $script = json_encode($script);
         $cdb->createView('testDesign', 'testView', $script);
         $return = $cdb->getView($design, $view, $keyValue);
-        var_dump($return);
-        self::assertTrue(isset($return->ok) && $return->ok == true);
+        $this->assertTrue(isset($return->total_rows));
     }
 
     /* ---------------------------------- unit tests - privates ---------------------------------- */
@@ -385,7 +395,7 @@ class CouchDbTest extends TestCase
         }
         $cdb = new CouchDb();
         $this->invokeMethod($cdb, 'checkId', array($id));
-        self::assertTrue(true);
+        $this->assertTrue(true);
     }
 
     /**
@@ -400,7 +410,7 @@ class CouchDbTest extends TestCase
         }
         $cdb = new CouchDb();
         $this->invokeMethod($cdb, 'checkCH', array($ch));
-        self::assertTrue(true);
+        $this->assertTrue(true);
     }
 
     /**
@@ -415,7 +425,7 @@ class CouchDbTest extends TestCase
         }
         $cdb = new CouchDb();
         $this->invokeMethod($cdb, 'checkUrl', array($url));
-        self::assertTrue(true);
+        $this->assertTrue(true);
     }
 
     /**
@@ -430,7 +440,7 @@ class CouchDbTest extends TestCase
         }
         $cdb = new CouchDb();
         $this->invokeMethod($cdb, 'checkData', array($data));
-        self::assertTrue(true);
+        $this->assertTrue(true);
     }
 
     /**
